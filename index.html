@@ -2503,8 +2503,6 @@
       signInWithEmailAndPassword,
       createUserWithEmailAndPassword,
       signInWithPopup,
-      signInWithRedirect,
-      getRedirectResult,
       GoogleAuthProvider,
       sendPasswordResetEmail,
       signOut,
@@ -2537,7 +2535,7 @@
     // ──────────────────────────────────────────────
     const firebaseConfig = {
       apiKey: "AIzaSyDIaG9nE36vY3IXBwtlqHCCojNiEr1xrkM",
-      authDomain: "spontaneous-snickerdoodle-be8ee0.netlify.app",
+      authDomain: "vender-bc564.firebaseapp.com",
       projectId: "vender-bc564",
       storageBucket: "vender-bc564.firebasestorage.app",
       messagingSenderId: "773440595056",
@@ -2681,38 +2679,14 @@
       }
     };
 
-    // Handle redirect result on page load (for mobile / COOP-blocked environments)
-    getRedirectResult(auth).then(result => {
-      if (result && result.user) hideLoading();
-    }).catch(e => {
-      hideLoading();
-      if (e.code !== 'auth/no-auth-event') toast(firebaseErrMsg(e), 'error');
-    });
-
     window.doGoogleLogin = async () => {
       showLoading();
       try {
-        // Try popup first; if blocked by COOP (Netlify), fall back to redirect
         await signInWithPopup(auth, googleProvider);
+        // onAuthStateChanged automatically handles the rest
       } catch (e) {
-        if (
-          e.code === 'auth/popup-blocked' ||
-          e.code === 'auth/cancelled-popup-request' ||
-          e.code === 'auth/popup-closed-by-user' ||
-          e.message?.includes('Cross-Origin-Opener-Policy') ||
-          e.message?.includes('window.close')
-        ) {
-          // Popup blocked by browser/COOP — use redirect instead
-          try {
-            await signInWithRedirect(auth, googleProvider);
-          } catch (e2) {
-            hideLoading();
-            toast(firebaseErrMsg(e2), 'error');
-          }
-        } else {
-          hideLoading();
-          toast(firebaseErrMsg(e), 'error');
-        }
+        hideLoading();
+        toast(firebaseErrMsg(e), 'error');
       }
     };
 
@@ -2743,15 +2717,9 @@
       'auth/user-not-found': 'No account found with this email.',
       'auth/wrong-password': 'Incorrect password.',
       'auth/email-already-in-use': 'Email already registered.',
-      'auth/weak-password': 'Password is too weak (min 6 chars).',
+      'auth/weak-password': 'Password is too weak.',
       'auth/popup-closed-by-user': 'Google sign-in cancelled.',
-      'auth/cancelled-popup-request': 'Only one sign-in window at a time.',
-      'auth/popup-blocked': 'Popup blocked — trying redirect...',
       'auth/invalid-email': 'Invalid email address.',
-      'auth/network-request-failed': 'Network error. Check your connection.',
-      'auth/too-many-requests': 'Too many attempts. Try again later.',
-      'auth/operation-not-allowed': 'Google sign-in not enabled in Firebase.',
-      'auth/unauthorized-domain': 'This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized Domains.',
     }[e.code] || e.message || 'Something went wrong.');
 
     // ──────────────────────────────────────────────
