@@ -1,0 +1,90 @@
+<%- include('partials/head', { title: 'Sign Up' }) %>
+
+<div class="login-container">
+  <div class="login-card" style="max-width: 480px;">
+    <div class="login-header">
+      <div class="login-logo">VB</div>
+      <h1 class="login-title">Create Account</h1>
+      <p class="login-subtitle">Register a new profile on VendorBridge ERP</p>
+    </div>
+
+    <% if (error) { %>
+      <div class="error-alert">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <% if (success) { %>
+      <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid var(--color-success); color: var(--color-success); padding: 0.75rem 1rem; border-radius: var(--radius-md); font-size: 0.85rem; font-weight: 500; text-align: center;">
+        <%= success %>
+      </div>
+    <% } %>
+
+    <form action="/signup" method="POST" style="display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" name="name" class="form-control" placeholder="John Doe" required>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" class="form-control" placeholder="name@company.com" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <div class="form-group">
+        <label for="role">User Role</label>
+        <select id="role" name="role" class="form-control" onchange="handleRoleChange()" required>
+          <option value="">Select your role...</option>
+          <option value="PROCUREMENT_OFFICER">Procurement Officer</option>
+          <option value="VENDOR">Vendor / Supplier Representative</option>
+          <option value="APPROVER">Approver / Manager</option>
+        </select>
+      </div>
+
+      <!-- Conditional Vendor Selector -->
+      <div class="form-group" id="vendorSelectGroup" style="display: none;">
+        <label for="vendorId">Associate Supplier Company *</label>
+        <select id="vendorId" name="vendorId" class="form-control">
+          <option value="">Choose your company...</option>
+          <% vendors.forEach(v => { %>
+            <option value="<%= v.id %>"><%= v.name %></option>
+          <% }) %>
+        </select>
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem;">Must select your registered supplier firm to quote and view POs.</p>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; height: 44px; font-weight: 600;">
+        <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
+        <span>Create Account</span>
+      </button>
+    </form>
+
+    <div style="text-align: center; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-light); padding-top: 1rem; margin-top: 0.5rem;">
+      Already have an account? <a href="/login" style="color: var(--color-primary); text-decoration: none; font-weight: 600;">Sign In</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function handleRoleChange() {
+    const roleSelect = document.getElementById('role');
+    const vendorGroup = document.getElementById('vendorSelectGroup');
+    const vendorSelect = document.getElementById('vendorId');
+
+    if (roleSelect.value === 'VENDOR') {
+      vendorGroup.style.display = 'flex';
+      vendorSelect.required = true;
+    } else {
+      vendorGroup.style.display = 'none';
+      vendorSelect.required = false;
+      vendorSelect.value = '';
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>

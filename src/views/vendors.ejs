@@ -1,0 +1,215 @@
+<%- include('partials/head', { title: 'Vendor Directory' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <!-- Top Header -->
+    <div class="top-bar">
+      <div class="page-title">
+        <h1>Vendor Directory</h1>
+        <p>Maintain organized records, track status, and register new vendor entities.</p>
+      </div>
+      <div class="no-print">
+        <% if (['ADMIN', 'PROCUREMENT_OFFICER'].includes(user.role)) { %>
+          <button onclick="toggleRegisterForm()" class="btn btn-primary">
+            <i data-lucide="user-plus"></i>
+            <span>Register Vendor</span>
+          </button>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Filters Panel -->
+    <div class="panel no-print">
+      <form action="/vendors" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 120px; gap: 1rem; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="search">Search Name/GST/Email</label>
+          <input type="text" id="search" name="search" class="form-control" value="<%= filters.search %>" placeholder="Type to search...">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="category">Category</label>
+          <select id="category" name="category" class="form-control">
+            <option value="">All Categories</option>
+            <% categories.forEach(cat => { %>
+              <option value="<%= cat %>" <%= filters.category === cat ? 'selected' : '' %>><%= cat %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="status">Status</label>
+          <select id="status" name="status" class="form-control">
+            <option value="">All Statuses</option>
+            <option value="ACTIVE" <%= filters.status === 'ACTIVE' ? 'selected' : '' %>>Active</option>
+            <option value="PENDING_APPROVAL" <%= filters.status === 'PENDING_APPROVAL' ? 'selected' : '' %>>Pending Approval</option>
+            <option value="BLACKLISTED" <%= filters.status === 'BLACKLISTED' ? 'selected' : '' %>>Blacklisted</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-secondary" style="height: 42px;">
+          <i data-lucide="filter"></i>
+          <span>Filter</span>
+        </button>
+      </form>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 3fr; gap: 1.5rem;" id="vendorsContent">
+      <!-- Vendors List Panel -->
+      <div class="panel">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Vendor Details</th>
+                <th>Category</th>
+                <th>GST Number</th>
+                <th>Rating</th>
+                <th>Status</th>
+                <% if (['ADMIN', 'PROCUREMENT_OFFICER'].includes(user.role)) { %>
+                  <th class="no-print" style="text-align: right;">Actions</th>
+                <% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (vendors.length === 0) { %>
+                <tr>
+                  <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 3rem;">No vendors match your search filters.</td>
+                </tr>
+              <% } else { %>
+                <% vendors.forEach(vendor => { %>
+                  <tr>
+                    <td>
+                      <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+                        <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-main);"><%= vendor.name %></span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);"><%= vendor.email %> &bull; <%= vendor.phone %></span>
+                        <span style="font-size: 0.75rem; color: var(--text-subtle);"><%= vendor.address %></span>
+                      </div>
+                    </td>
+                    <td>
+                      <span style="background: rgba(255, 255, 255, 0.04); padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); font-size: 0.8rem;">
+                        <%= vendor.category %>
+                      </span>
+                    </td>
+                    <td><code style="color: var(--color-info); font-family: monospace; font-size: 0.85rem;"><%= vendor.gst_number %></code></td>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        <i data-lucide="star" style="width: 14px; height: 14px; fill: var(--color-warning); color: var(--color-warning);"></i>
+                        <span style="font-weight: 600; font-size: 0.85rem;"><%= vendor.rating.toFixed(1) %></span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge <%= vendor.status.toLowerCase() %>"><%= vendor.status.replace('_', ' ') %></span>
+                    </td>
+                    
+                    <% if (['ADMIN', 'PROCUREMENT_OFFICER'].includes(user.role)) { %>
+                      <td class="no-print" style="text-align: right; vertical-align: middle;">
+                        <div style="display: inline-flex; gap: 0.5rem; justify-content: flex-end;">
+                          <% if (vendor.status === 'ACTIVE') { %>
+                            <form action="/vendors/<%= vendor.id %>/status" method="POST" style="display: inline;">
+                              <input type="hidden" name="status" value="BLACKLISTED">
+                              <button type="submit" class="btn btn-danger btn-sm" title="Blacklist Vendor">
+                                <i data-lucide="shield-alert" style="width: 14px; height: 14px;"></i>
+                                <span>Blacklist</span>
+                              </button>
+                            </form>
+                          <% } else if (vendor.status === 'BLACKLISTED') { %>
+                            <form action="/vendors/<%= vendor.id %>/status" method="POST" style="display: inline;">
+                              <input type="hidden" name="status" value="ACTIVE">
+                              <button type="submit" class="btn btn-success btn-sm" title="Reactivate Vendor">
+                                <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>
+                                <span>Reactivate</span>
+                              </button>
+                            </form>
+                          <% } %>
+                        </div>
+                      </td>
+                    <% } %>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Registration Form Panel (Hidden by default, shown side-by-side or on toggle) -->
+      <% if (['ADMIN', 'PROCUREMENT_OFFICER'].includes(user.role)) { %>
+        <div class="panel no-print" id="registerFormPanel" style="display: none;">
+          <div class="panel-header">
+            <h3 class="panel-title">Register New Vendor Profile</h3>
+            <button onclick="toggleRegisterForm()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i data-lucide="x"></i></button>
+          </div>
+          
+          <form action="/vendors/register" method="POST" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group">
+              <label for="name">Company Legal Name</label>
+              <input type="text" id="name" name="name" class="form-control" placeholder="e.g. Acme Industries Ltd" required>
+            </div>
+
+            <div class="form-group">
+              <label for="category_input">Industry Category</label>
+              <input type="text" id="category_input" name="category" class="form-control" placeholder="e.g. Office Supplies, IT Services" required list="existing_categories">
+              <datalist id="existing_categories">
+                <% categories.forEach(cat => { %>
+                  <option value="<%= cat %>">
+                <% }) %>
+              </datalist>
+            </div>
+
+            <div class="form-group">
+              <label for="gstNumber">GSTIN Number</label>
+              <input type="text" id="gstNumber" name="gstNumber" class="form-control" placeholder="e.g. 27AAAAA1111A1Z1" minlength="15" maxlength="15" style="text-transform: uppercase;" required>
+            </div>
+
+            <div class="form-group">
+              <label for="email">Corporate Email Address</label>
+              <input type="email" id="email" name="email" class="form-control" placeholder="e.g. sales@company.com" required>
+            </div>
+
+            <div class="form-group">
+              <label for="phone">Contact Phone Number</label>
+              <input type="tel" id="phone" name="phone" class="form-control" placeholder="e.g. +91 9876543210" required>
+            </div>
+
+            <div class="form-group">
+              <label for="address">Corporate Address Details</label>
+              <textarea id="address" name="address" class="form-control" placeholder="Complete address..." required></textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 0.5rem;">
+              <button type="button" onclick="toggleRegisterForm()" class="btn btn-secondary">Cancel</button>
+              <button type="submit" class="btn btn-primary">
+                <i data-lucide="save"></i>
+                <span>Register Vendor</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      <% } %>
+    </div>
+  </main>
+</div>
+
+<script>
+  function toggleRegisterForm() {
+    const grid = document.getElementById('vendorsContent');
+    const form = document.getElementById('registerFormPanel');
+    
+    if (form.style.display === 'none') {
+      // Show form in split view
+      grid.style.gridTemplateColumns = '2fr 1.25fr';
+      form.style.display = 'flex';
+      setTimeout(() => {
+        form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    } else {
+      // Hide form
+      grid.style.gridTemplateColumns = '3fr';
+      form.style.display = 'none';
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>

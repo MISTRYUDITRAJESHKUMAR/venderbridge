@@ -1,0 +1,225 @@
+<%- include('partials/head', { title: 'Create RFQ' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <div class="top-bar">
+      <div class="page-title">
+        <h1>Create Request for Quotation</h1>
+        <p>Draft a procurement requirement, set a deadline, and invite active vendors to bid.</p>
+      </div>
+      <div>
+        <a href="/rfqs" class="btn btn-secondary">
+          <i data-lucide="arrow-left"></i>
+          <span>Back to List</span>
+        </a>
+      </div>
+    </div>
+
+    <form action="/rfqs/create" method="POST" onsubmit="return validateForm()">
+      <div style="display: grid; grid-template-columns: 2fr 1.25fr; gap: 1.5rem;">
+        
+        <!-- Left Column: Core Fields & Items -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- General Details -->
+          <div class="panel">
+            <h3 class="panel-title" style="border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">RFQ Details</h3>
+            
+            <div class="form-group">
+              <label for="title">RFQ Title</label>
+              <input type="text" id="title" name="title" class="form-control" placeholder="e.g. Annual IT Infrastructure Upgrade" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="description">Scope of Work / Description</label>
+              <textarea id="description" name="description" class="form-control" placeholder="Provide details, scope, delivery details..." style="min-height: 120px;" required></textarea>
+            </div>
+          </div>
+
+          <!-- Dynamic Item Management -->
+          <div class="panel">
+            <div class="panel-header" style="border: none; padding-bottom: 0;">
+              <h3 class="panel-title">Requested Items & Deliverables</h3>
+              <button type="button" onclick="addItemRow()" class="btn btn-secondary btn-sm">
+                <i data-lucide="plus"></i>
+                <span>Add Item</span>
+              </button>
+            </div>
+
+            <div class="table-responsive">
+              <table class="data-table" id="itemsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 35%;">Item Name *</th>
+                    <th style="width: 15%;">Quantity *</th>
+                    <th style="width: 15%;">Unit *</th>
+                    <th style="width: 30%;">Specifications / Remarks</th>
+                    <th style="width: 5%; text-align: center;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="item-row">
+                    <td>
+                      <input type="text" name="item_name" class="form-control" placeholder="Item name..." required>
+                    </td>
+                    <td>
+                      <input type="number" name="item_qty" class="form-control" placeholder="Qty" min="0.01" step="any" required>
+                    </td>
+                    <td>
+                      <select name="item_unit" class="form-control">
+                        <option value="PCS">PCS</option>
+                        <option value="KG">KG</option>
+                        <option value="LITERS">Liters</option>
+                        <option value="BOXES">Boxes</option>
+                        <option value="HOURS">Hours</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input type="text" name="item_desc" class="form-control" placeholder="Specs, warranty, brand...">
+                    </td>
+                    <td style="text-align: center;">
+                      <button type="button" onclick="deleteRow(this)" style="background: none; border: none; color: var(--color-danger); cursor: pointer;" title="Remove Row">
+                        <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Timeline & Assignments -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Deadline setting -->
+          <div class="panel">
+            <h3 class="panel-title" style="border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">Timeline Config</h3>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="deadline">Submission Deadline</label>
+              <!-- Set default min value to now plus 1 hour -->
+              <input type="datetime-local" id="deadline" name="deadline" class="form-control" required>
+            </div>
+          </div>
+
+          <!-- Vendor Assignment Checkboxes -->
+          <div class="panel" style="max-height: 400px; overflow-y: auto;">
+            <h3 class="panel-title" style="border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">Vendor Assignment</h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Select which active vendors should receive invitations to submit bids.</p>
+
+            <% if (vendors.length === 0) { %>
+              <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">
+                No active vendors available in directory. Please register active vendors first.
+              </div>
+            <% } else { %>
+              <!-- Group vendors by Category -->
+              <% 
+                const groupedVendors = {};
+                vendors.forEach(v => {
+                  if (!groupedVendors[v.category]) groupedVendors[v.category] = [];
+                  groupedVendors[v.category].push(v);
+                });
+              %>
+
+              <% Object.keys(groupedVendors).forEach(cat => { %>
+                <div style="margin-bottom: 1rem;">
+                  <span style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--color-primary); letter-spacing: 0.05em;"><%= cat %></span>
+                  <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.35rem;">
+                    <% groupedVendors[cat].forEach(vendor => { %>
+                      <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                        <input type="checkbox" name="assignedVendors" value="<%= vendor.id %>" style="width: 16px; height: 16px; accent-color: var(--color-primary);">
+                        <span><%= vendor.name %></span>
+                      </label>
+                    <% }) %>
+                  </div>
+                </div>
+              <% }) %>
+            <% } %>
+          </div>
+
+          <!-- Submit Button Panel -->
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="height: 48px; width: 100%; font-weight: 600;">
+              <i data-lucide="send"></i>
+              <span>Publish & Invite Vendors</span>
+            </button>
+            <a href="/rfqs" class="btn btn-secondary" style="height: 42px; width: 100%;">Cancel</a>
+          </div>
+
+        </div>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+  // Dynamic Datetime-Local setup
+  document.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    // Round to next hour
+    now.setHours(now.getHours() + 24); // default 24 hours from now
+    now.setMinutes(0);
+    const minString = now.toISOString().slice(0, 16);
+    document.getElementById('deadline').value = minString;
+    document.getElementById('deadline').min = new Date().toISOString().slice(0, 16);
+  });
+
+  // Add Row Helper
+  function addItemRow() {
+    const tableBody = document.querySelector('#itemsTable tbody');
+    const newRow = document.createElement('tr');
+    newRow.className = 'item-row';
+    newRow.innerHTML = `
+      <td>
+        <input type="text" name="item_name" class="form-control" placeholder="Item name..." required>
+      </td>
+      <td>
+        <input type="number" name="item_qty" class="form-control" placeholder="Qty" min="0.01" step="any" required>
+      </td>
+      <td>
+        <select name="item_unit" class="form-control">
+          <option value="PCS">PCS</option>
+          <option value="KG">KG</option>
+          <option value="LITERS">Liters</option>
+          <option value="BOXES">Boxes</option>
+          <option value="HOURS">Hours</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" name="item_desc" class="form-control" placeholder="Specs, warranty, brand...">
+      </td>
+      <td style="text-align: center;">
+        <button type="button" onclick="deleteRow(this)" style="background: none; border: none; color: var(--color-danger); cursor: pointer;" title="Remove Row">
+          <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+        </button>
+      </td>
+    `;
+    tableBody.appendChild(newRow);
+    lucide.createIcons(); // render trash icon
+  }
+
+  // Delete Row Helper
+  function deleteRow(button) {
+    const rows = document.querySelectorAll('.item-row');
+    if (rows.length <= 1) {
+      alert("An RFQ must contain at least one item.");
+      return;
+    }
+    button.closest('tr').remove();
+  }
+
+  // Validate form before submission
+  function validateForm() {
+    const checkboxes = document.querySelectorAll('input[name="assignedVendors"]:checked');
+    if (checkboxes.length === 0) {
+      alert('You must assign at least one vendor to this RFQ.');
+      return false;
+    }
+    return true;
+  }
+</script>
+
+<%- include('partials/footer') %>

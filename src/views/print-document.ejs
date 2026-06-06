@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= doc.title %></title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/print.css" media="print">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      background: #0b0f19; /* Standard dark theme preview */
+      color: #f8fafc;
+      padding: 2rem;
+    }
+    
+    .print-frame {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 3rem;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+    }
+
+    /* Floating control bar for browser print triggers */
+    .control-bar {
+      max-width: 850px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+      }
+      .print-frame {
+        border: none !important;
+        background: #ffffff !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        box-shadow: none !important;
+      }
+      .control-bar {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Toolbar -->
+  <div class="control-bar no-print">
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <i data-lucide="file-text" style="color:var(--color-primary);"></i>
+      <span style="font-weight: 600;"><%= doc.docType %> Preview</span>
+    </div>
+    <div style="display:flex; gap:0.75rem;">
+      <button onclick="window.close()" class="btn btn-secondary btn-sm">
+        <i data-lucide="x"></i>
+        <span>Close Window</span>
+      </button>
+      <button onclick="window.print()" class="btn btn-primary btn-sm">
+        <i data-lucide="printer"></i>
+        <span>Print or Save PDF</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Document Body Frame -->
+  <div class="print-frame print-container">
+    
+    <!-- Letterhead -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--border-light); padding-bottom:2rem; margin-bottom:2.5rem;">
+      <div>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.5rem;">
+          <div style="background:var(--color-primary); width:32px; height:32px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; color:white; font-weight:750;">VB</div>
+          <span style="font-size:1.5rem; font-family:'Outfit'; font-weight:750;">VendorBridge ERP</span>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.4;">
+          VendorBridge Corporate Office<br>
+          BKC G-Block Road, Bandra East<br>
+          Mumbai, Maharashtra, 400051<br>
+          GSTIN: 27VNDBD9999A1Z9
+        </p>
+      </div>
+
+      <div style="text-align:right;">
+        <h1 style="font-size:2rem; font-family:'Outfit'; font-weight:700; color:var(--color-primary); text-transform:uppercase; letter-spacing:-0.03em; margin-bottom:0.25rem;"><%= doc.docType %></h1>
+        <div style="font-size:0.9rem; margin-bottom:0.15rem;">Number: <strong><%= doc.number %></strong></div>
+        <% if (doc.poNumber) { %>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.15rem;">PO Ref: <strong><%= doc.poNumber %></strong></div>
+        <% } %>
+        <div style="font-size:0.85rem; color:var(--text-muted);">Date: <%= new Date(doc.date).toLocaleDateString([], {dateStyle:'medium'}) %></div>
+      </div>
+    </div>
+
+    <!-- Parties section -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:3rem; margin-bottom:2.5rem;">
+      <div>
+        <h3 style="font-size:0.8rem; text-transform:uppercase; color:var(--color-primary); letter-spacing:0.05em; font-weight:600; margin-bottom:0.5rem;">Vendor Partner</h3>
+        <div style="font-size:0.95rem; font-weight:600; margin-bottom:0.25rem;"><%= doc.vendor.name %></div>
+        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;">
+          <%= doc.vendor.address %><br>
+          Phone: <%= doc.vendor.phone %><br>
+          Email: <%= doc.vendor.email %><br>
+          GSTIN: <%= doc.vendor.gst %>
+        </p>
+      </div>
+
+      <div>
+        <h3 style="font-size:0.8rem; text-transform:uppercase; color:var(--color-primary); letter-spacing:0.05em; font-weight:600; margin-bottom:0.5rem;">Ship To / Bill To</h3>
+        <div style="font-size:0.95rem; font-weight:600; margin-bottom:0.25rem;">VendorBridge Operations</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.4;">
+          BKC G-Block Road, Bandra East<br>
+          Mumbai, Maharashtra, 400051<br>
+          Phone: +91 22 9999 8888<br>
+          Email: billing@vendorbridge.com
+        </p>
+      </div>
+    </div>
+
+    <!-- Procurement Title -->
+    <div style="margin-bottom:1.5rem;">
+      <h3 style="font-size:0.8rem; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.05em; font-weight:600; margin-bottom:0.25rem;">Procurement Subject Reference</h3>
+      <span style="font-size:0.95rem; font-weight:600;"><%= doc.rfqTitle %></span>
+      <% if (doc.rfqDesc) { %>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;"><%= doc.rfqDesc %></p>
+      <% } %>
+    </div>
+
+    <!-- Items Table -->
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="text-align:left; width:5%;">#</th>
+          <th style="text-align:left; width:50%;">Requested Items & Deliverables</th>
+          <th style="text-align:right; width:15%;">Quantity</th>
+          <th style="text-align:right; width:15%;">Unit Price</th>
+          <th style="text-align:right; width:15%;">Total Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% doc.items.forEach((item, index) => { %>
+          <tr>
+            <td style="text-align:left;"><%= index + 1 %></td>
+            <td style="text-align:left; font-weight:600;"><%= item.name %></td>
+            <td style="text-align:right;"><%= item.quantity %> <%= item.unit %></td>
+            <td style="text-align:right; font-family:monospace;">₹<%= item.pricePerUnit.toFixed(2) %></td>
+            <td style="text-align:right; font-weight:600; font-family:monospace;">₹<%= item.totalPrice.toFixed(2) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <!-- Totals & Terms -->
+    <div class="clearfix" style="margin-top:2rem;">
+      <div style="float:left; width:50%; font-size:0.85rem; color:var(--text-muted); line-height:1.5;">
+        <% if (doc.timeline) { %>
+          <div style="margin-bottom:0.5rem;">
+            <strong>Expected Delivery:</strong> <%= doc.timeline %>
+          </div>
+        <% } %>
+        <div>
+          <strong>Payment Terms:</strong> Net 30 Days from receipt of invoice.<br>
+          This is a system-generated document and is legally binding.
+        </div>
+      </div>
+
+      <div class="totals-box" style="float:right; width:40%;">
+        <div class="totals-row" style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.9rem;">
+          <span style="color:var(--text-muted)">Subtotal:</span>
+          <span style="font-family:monospace; font-weight:600;">₹<%= doc.subTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+        </div>
+        <div class="totals-row" style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.9rem;">
+          <span style="color:var(--text-muted)">CGST/SGST (<%= doc.taxRate %>%):</span>
+          <span style="font-family:monospace; font-weight:600;">₹<%= doc.taxAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+        </div>
+        <div class="totals-row grand-total" style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; border-top:1.5px solid var(--border-light); padding-top:0.6rem; margin-top:0.4rem; color:var(--color-primary);">
+          <span>Grand Total:</span>
+          <span style="font-family:monospace;">₹<%= doc.grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signatures -->
+    <div style="margin-top:4.5rem; display:grid; grid-template-columns:1fr 1fr; gap:4rem; font-size:0.85rem; border-top:1px dashed var(--border-light); padding-top:2rem;" class="page-break-inside-avoid">
+      <div>
+        <div style="height:40px;"></div>
+        <div style="border-top:1px solid var(--text-subtle); width:180px; margin-bottom:0.25rem;"></div>
+        <strong>Authorized Signatory</strong>
+        <p style="color:var(--text-muted); font-size:0.75rem;">VendorBridge Procurement Division</p>
+      </div>
+
+      <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
+        <div style="height:40px;"></div>
+        <div style="border-top:1px solid var(--text-subtle); width:180px; margin-bottom:0.25rem;"></div>
+        <strong>Receiver Signature</strong>
+        <p style="color:var(--text-muted); font-size:0.75rem;"><%= doc.vendor.name %></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

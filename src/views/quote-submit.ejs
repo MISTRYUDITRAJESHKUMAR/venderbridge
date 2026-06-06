@@ -1,0 +1,169 @@
+<%- include('partials/head', { title: quote ? 'Edit Quotation' : 'Submit Quotation' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <div class="top-bar">
+      <div class="page-title">
+        <h1><%= quote ? 'Edit Quotation Details' : 'Submit Quotation' %></h1>
+        <p>Prepare your pricing bids and delivery timelines for the items requested in this RFQ.</p>
+      </div>
+      <div>
+        <a href="/rfqs" class="btn btn-secondary">
+          <i data-lucide="arrow-left"></i>
+          <span>Back to RFQs</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- RFQ Summary Card -->
+    <div class="panel" style="background: rgba(99, 102, 241, 0.03); border-color: rgba(99, 102, 241, 0.15);">
+      <h3 style="font-size: 1.1rem; font-family: 'Outfit'; color: var(--color-primary);"><%= rfq.title %></h3>
+      <p style="font-size: 0.9rem; margin-top: 0.25rem;"><%= rfq.description %></p>
+      <div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
+        <span>RFQ ID: <code style="color:var(--text-main)"><%= rfq.id %></code></span>
+        <span>&bull;</span>
+        <span>Deadline: <strong style="color: var(--color-danger);"><%= new Date(rfq.deadline).toLocaleString() %></strong></span>
+      </div>
+    </div>
+
+    <!-- Quotation Submission Form -->
+    <form action="/quotes/submit" method="POST">
+      <input type="hidden" name="rfqId" value="<%= rfq.id %>">
+      <% if (quote) { %>
+        <input type="hidden" name="quoteId" value="<%= quote.id %>">
+      <% } %>
+
+      <div style="display: grid; grid-template-columns: 2fr 1.25fr; gap: 1.5rem; margin-top: 1.5rem;">
+        
+        <!-- Left: Items Pricing Table -->
+        <div class="panel">
+          <h3 class="panel-title" style="border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">Line Item Pricing</h3>
+          
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 45%;">Item Description</th>
+                  <th style="width: 15%;">Qty Required</th>
+                  <th style="width: 20%;">Unit Price (INR) *</th>
+                  <th style="width: 20%; text-align: right;">Line Total (INR)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% rfq.items.forEach(item => { %>
+                  <% 
+                    // Find existing quote item price if editing
+                    let existingPrice = '';
+                    if (quote) {
+                      const qItem = quote.items.find(qi => qi.itemId === item.id);
+                      if (qItem) existingPrice = qItem.pricePerUnit;
+                    }
+                  %>
+                  <tr>
+                    <td>
+                      <div style="display: flex; flex-direction: column;">
+                        <strong><%= item.name %></strong>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);"><%= item.description || 'No specs provided.' %></span>
+                      </div>
+                      <input type="hidden" name="item_id" value="<%= item.id %>">
+                    </td>
+                    <td>
+                      <span id="qty-<%= item.id %>" style="font-weight: 600;"><%= item.quantity %></span>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.15rem;"><%= item.unit %></span>
+                    </td>
+                    <td>
+                      <input type="number" 
+                             name="price_per_unit" 
+                             class="form-control price-input" 
+                             placeholder="0.00" 
+                             min="0.01" 
+                             step="any"
+                             value="<%= existingPrice %>"
+                             data-item-id="<%= item.id %>"
+                             data-quantity="<%= item.quantity %>"
+                             onkeyup="calculateTotal()"
+                             onchange="calculateTotal()"
+                             required>
+                    </td>
+                    <td style="text-align: right; font-weight: 600; font-family: monospace;" id="total-<%= item.id %>">
+                      ₹<%= existingPrice ? (existingPrice * item.quantity).toFixed(2) : '0.00' %>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="3" style="text-align: right; font-weight: 700; font-size: 0.95rem; border-bottom: none;">Subtotal:</td>
+                  <td style="text-align: right; font-weight: 700; font-size: 1.05rem; font-family: monospace; color: var(--color-primary); border-bottom: none;" id="subtotalDisplay">
+                    ₹0.00
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Right: Timeline, Terms, Action -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          
+          <!-- Delivery Timeline -->
+          <div class="panel">
+            <h3 class="panel-title" style="border-bottom: 1px solid var(--border-light); padding-bottom: 0.5rem;">Timelines & Terms</h3>
+            
+            <div class="form-group">
+              <label for="deliveryTimeline">Delivery Timeline (Days) *</label>
+              <input type="number" id="deliveryTimeline" name="deliveryTimeline" class="form-control" placeholder="e.g. 10 days" min="1" value="<%= quote ? quote.delivery_timeline_days : '' %>" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="notes">Notes / Special Conditions</label>
+              <textarea id="notes" name="notes" class="form-control" placeholder="Warranty details, logistics terms, payment terms..." style="min-height: 100px;"><%= quote ? quote.notes : '' %></textarea>
+            </div>
+          </div>
+
+          <!-- Submission Action Buttons -->
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary" style="height: 48px; width: 100%; font-weight: 600;">
+              <i data-lucide="send"></i>
+              <span><%= quote ? 'Update Quotation' : 'Submit Quotation' %></span>
+            </button>
+            <a href="/rfqs" class="btn btn-secondary" style="height: 42px; width: 100%;">Cancel</a>
+          </div>
+
+        </div>
+      </div>
+    </form>
+  </main>
+</div>
+
+<script>
+  // Script to dynamically calculate prices
+  function calculateTotal() {
+    let subtotal = 0;
+    const inputs = document.querySelectorAll('.price-input');
+    
+    inputs.forEach(input => {
+      const itemId = input.dataset.itemId;
+      const quantity = parseFloat(input.dataset.quantity);
+      const price = parseFloat(input.value) || 0;
+      
+      const total = price * quantity;
+      subtotal += total;
+      
+      // Update cell display
+      document.getElementById('total-' + itemId).innerText = '₹' + total.toFixed(2);
+    });
+    
+    // Update subtotal display
+    document.getElementById('subtotalDisplay').innerText = '₹' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Run initial calculation if editing an existing quote
+  document.addEventListener('DOMContentLoaded', () => {
+    calculateTotal();
+  });
+</script>
+
+<%- include('partials/footer') %>

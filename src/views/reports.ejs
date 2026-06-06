@@ -1,0 +1,169 @@
+<%- include('partials/head', { title: 'Reports & Analytics' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <!-- Top Header -->
+    <div class="top-bar">
+      <div class="page-title">
+        <h1>Reports & Procurement Analytics</h1>
+        <p>Monitor procurement activities, vendor performance indices, and monthly spend distributions.</p>
+      </div>
+      <div class="no-print">
+        <button onclick="window.print()" class="btn btn-primary">
+          <i data-lucide="printer"></i>
+          <span>Print Report</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon primary">
+          <i data-lucide="wallet"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">₹<%= summary.totalSpend.toLocaleString('en-IN', { maximumFractionDigits: 2 }) %></span>
+          <span class="metric-label">Total Spent Value</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon success">
+          <i data-lucide="shield-check"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value">₹<%= summary.totalInvoiced.toLocaleString('en-IN', { maximumFractionDigits: 2 }) %></span>
+          <span class="metric-label">Invoiced Amount</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon warning">
+          <i data-lucide="users"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value"><%= summary.activeVendors %></span>
+          <span class="metric-label">Active Suppliers</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon info">
+          <i data-lucide="file-spreadsheet"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-value"><%= summary.totalRfqs %></span>
+          <span class="metric-label">Total RFQs Run</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spend Trends Chart -->
+    <div class="panel no-print">
+      <div class="panel-header">
+        <h3 class="panel-title">Spend Growth Curve</h3>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Monthly distribution of purchase order values</span>
+      </div>
+      <div style="height: 300px; position: relative;">
+        <canvas id="spendTrendCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Vendor Performance Metrics -->
+    <div class="panel">
+      <div class="panel-header">
+        <h3 class="panel-title">Vendor Spend & Performance Directory</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Vendor Company</th>
+              <th>Category</th>
+              <th>Satisfaction Rating</th>
+              <th style="text-align: right;">PO Volume</th>
+              <th style="text-align: right;">Total Spend Captured</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% vendorSpends.forEach(vendor => { %>
+              <tr>
+                <td><strong><%= vendor.name %></strong></td>
+                <td>
+                  <span style="font-size: 0.8rem; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm);">
+                    <%= vendor.category %>
+                  </span>
+                </td>
+                <td>
+                  <div style="display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="star" style="width: 14px; height: 14px; fill: var(--color-warning); color: var(--color-warning);"></i>
+                    <span style="font-weight: 600;"><%= vendor.rating.toFixed(1) %></span>
+                  </div>
+                </td>
+                <td style="text-align: right; font-weight: 600;"><%= vendor.po_count %></td>
+                <td style="text-align: right; font-weight: 700; font-family: monospace; color: var(--color-primary);">
+                  ₹<%= vendor.total_spend.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('spendTrendCanvas');
+    if (canvas) {
+      const rawData = <%- monthlySpendingData %>;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      const labels = rawData.map(d => months[parseInt(d.month_num) - 1]);
+      const data = rawData.map(d => d.total);
+
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: labels.length ? labels : ['Current Period'],
+          datasets: [{
+            label: 'Spent Amount (INR)',
+            data: data.length ? data : [0],
+            borderColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.08)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: '#6366f1'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8' }
+            },
+            y: {
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              ticks: { color: '#94a3b8' }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+
+<%- include('partials/footer') %>

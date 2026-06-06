@@ -1,0 +1,166 @@
+<%- include('partials/head', { title: 'POs & Invoices' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <!-- Top Header -->
+    <div class="top-bar">
+      <div class="page-title">
+        <h1>Purchase Orders & Commercial Invoices</h1>
+        <p>Track binding contracts (POs) and execute payment processing against official invoices.</p>
+      </div>
+    </div>
+
+    <!-- Tab Control Panel -->
+    <div style="display: flex; gap: 1rem; margin-bottom: 0.5rem;" class="no-print">
+      <button onclick="switchTab('poTab', 'invoiceTab')" id="btnPoTab" class="btn btn-primary">
+        <i data-lucide="shopping-bag"></i>
+        <span>Purchase Orders (<%= pos.length %>)</span>
+      </button>
+      <button onclick="switchTab('invoiceTab', 'poTab')" id="btnInvoiceTab" class="btn btn-secondary">
+        <i data-lucide="receipt"></i>
+        <span>Invoices (<%= invoices.length %>)</span>
+      </button>
+    </div>
+
+    <!-- Tab 1: Purchase Orders Panel -->
+    <div class="panel" id="poTab">
+      <div class="panel-header">
+        <h3 class="panel-title">Active Purchase Orders</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>PO Number</th>
+              <th>RFQ Subject</th>
+              <th>Vendor Partner</th>
+              <th>Value (incl. GST)</th>
+              <th>Issue Date</th>
+              <th>Status</th>
+              <th class="no-print" style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (pos.length === 0) { %>
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 3rem;">No purchase orders generated yet.</td>
+              </tr>
+            <% } else { %>
+              <% pos.forEach(po => { %>
+                <tr>
+                  <td><strong><%= po.po_number %></strong></td>
+                  <td><%= po.rfq_title %></td>
+                  <td><%= po.vendor_name %></td>
+                  <td><strong style="font-family: monospace;">₹<%= po.grand_total.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></strong></td>
+                  <td><%= new Date(po.created_at).toLocaleDateString() %></td>
+                  <td>
+                    <span class="badge <%= po.status.toLowerCase() %>"><%= po.status %></span>
+                  </td>
+                  <td class="no-print" style="text-align: right; vertical-align: middle;">
+                    <div style="display: inline-flex; gap: 0.5rem; justify-content: flex-end;">
+                      <a href="/pos/print?type=po&id=<%= po.id %>" target="_blank" class="btn btn-secondary btn-sm" title="Print/View PO">
+                        <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                        <span>Print PO</span>
+                      </a>
+                      
+                      <% if (user.role === 'VENDOR' && po.status === 'ISSUED') { %>
+                        <form action="/invoices/generate" method="POST" style="display: inline;">
+                          <input type="hidden" name="poId" value="<%= po.id %>">
+                          <button type="submit" class="btn btn-primary btn-sm">
+                            <i data-lucide="file-signature" style="width: 14px; height: 14px;"></i>
+                            <span>Create Invoice</span>
+                          </button>
+                        </form>
+                      <% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Invoices Panel (Hidden by default) -->
+    <div class="panel" id="invoiceTab" style="display: none;">
+      <div class="panel-header">
+        <h3 class="panel-title">Commercial Invoices</h3>
+      </div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice Number</th>
+              <th>PO Reference</th>
+              <th>RFQ Subject</th>
+              <th>Vendor</th>
+              <th>Amount (INR)</th>
+              <th>Billing Date</th>
+              <th>Payment</th>
+              <th class="no-print" style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (invoices.length === 0) { %>
+              <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 3rem;">No invoices generated.</td>
+              </tr>
+            <% } else { %>
+              <% invoices.forEach(inv => { %>
+                <tr>
+                  <td><strong><%= inv.invoice_number %></strong></td>
+                  <td><code><%= inv.po_number %></code></td>
+                  <td><%= inv.rfq_title %></td>
+                  <td><%= inv.vendor_name %></td>
+                  <td><strong style="font-family: monospace;">₹<%= inv.grand_total.toLocaleString('en-IN', { minimumFractionDigits: 2 }) %></strong></td>
+                  <td><%= new Date(inv.created_at).toLocaleDateString() %></td>
+                  <td>
+                    <span class="badge <%= inv.status.toLowerCase() %>"><%= inv.status %></span>
+                  </td>
+                  <td class="no-print" style="text-align: right; vertical-align: middle;">
+                    <div style="display: inline-flex; gap: 0.5rem; justify-content: flex-end;">
+                      <a href="/pos/print?type=invoice&id=<%= inv.id %>" target="_blank" class="btn btn-secondary btn-sm" title="Print/View Invoice">
+                        <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                        <span>Print Invoice</span>
+                      </a>
+                      
+                      <% if (['PROCUREMENT_OFFICER', 'APPROVER'].includes(user.role) && inv.status === 'PENDING') { %>
+                        <form action="/invoices/pay" method="POST" style="display: inline;" onsubmit="return confirm('Confirm payment execution for invoice <%= inv.invoice_number %>?');">
+                          <input type="hidden" name="invoiceId" value="<%= inv.id %>">
+                          <button type="submit" class="btn btn-success btn-sm">
+                            <i data-lucide="credit-card" style="width: 14px; height: 14px;"></i>
+                            <span>Process Payment</span>
+                          </button>
+                        </form>
+                      <% } %>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Simple Tab Switcher script
+  function switchTab(showId, hideId) {
+    document.getElementById(showId).style.display = 'flex';
+    document.getElementById(hideId).style.display = 'none';
+
+    const btnShow = showId === 'poTab' ? 'btnPoTab' : 'btnInvoiceTab';
+    const btnHide = showId === 'poTab' ? 'btnInvoiceTab' : 'btnPoTab';
+
+    document.getElementById(btnShow).className = 'btn btn-primary';
+    document.getElementById(btnHide).className = 'btn btn-secondary';
+  }
+</script>
+
+<%- include('partials/footer') %>

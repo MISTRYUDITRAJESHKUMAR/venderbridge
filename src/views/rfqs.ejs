@@ -1,0 +1,169 @@
+<%- include('partials/head', { title: 'RFQs Management' }) %>
+
+<div class="app-container">
+  <%- include('partials/sidebar') %>
+
+  <main class="main-wrapper">
+    <!-- Top Header -->
+    <div class="top-bar">
+      <div class="page-title">
+        <h1>Request for Quotations (RFQs)</h1>
+        <p>
+          <% if (user.role === 'VENDOR') { %>
+            View active RFQs assigned to your company and submit pricing bids.
+          <% } else { %>
+            Create RFQs, assign vendors, track deadlines, and compare quotes.
+          <% } %>
+        </p>
+      </div>
+      <div class="no-print">
+        <% if (user.role === 'PROCUREMENT_OFFICER') { %>
+          <a href="/rfqs/create" class="btn btn-primary">
+            <i data-lucide="plus-circle"></i>
+            <span>Create New RFQ</span>
+          </a>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- RFQ Listing -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <% if (rfqs.length === 0) { %>
+        <div class="panel" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+          <div style="margin-bottom: 1rem;"><i data-lucide="folder-open" style="width: 48px; height: 48px; color: var(--text-subtle);"></i></div>
+          <h3>No RFQs Found</h3>
+          <p style="font-size: 0.9rem; margin-top: 0.25rem;">There are currently no active request processes registered.</p>
+        </div>
+      <% } else { %>
+        <% rfqs.forEach(rfq => { %>
+          <div class="panel" style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-light); padding-bottom: 1rem;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <h3 style="font-size: 1.25rem; font-family: 'Outfit';"><%= rfq.title %></h3>
+                  <span class="badge <%= rfq.status.toLowerCase() %>"><%= rfq.status %></span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">ID: <code style="color: var(--color-primary);"><%= rfq.id %></code> &bull; Created on <%= new Date(rfq.created_at).toLocaleDateString() %></p>
+              </div>
+
+              <!-- Action Control Box -->
+              <div class="no-print" style="display: flex; gap: 0.5rem; align-items: center;">
+                <% if (user.role === 'VENDOR') { %>
+                  <% if (rfq.vendorQuote) { %>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <span class="badge <%= rfq.vendorQuote.status.toLowerCase() %>">Your Quote: <%= rfq.vendorQuote.status %></span>
+                      <% if (rfq.vendorQuote.status === 'SUBMITTED') { %>
+                        <a href="/quotes/submit?rfqId=<%= rfq.id %>&quoteId=<%= rfq.vendorQuote.id %>" class="btn btn-secondary btn-sm">
+                          <i data-lucide="edit-3"></i>
+                          <span>Edit Quote</span>
+                        </a>
+                      <% } %>
+                    </div>
+                  <% } else { %>
+                    <a href="/quotes/submit?rfqId=<%= rfq.id %>" class="btn btn-primary btn-sm">
+                      <i data-lucide="send"></i>
+                      <span>Submit Quote</span>
+                    </a>
+                  <% } %>
+                <% } else if (user.role === 'PROCUREMENT_OFFICER') { %>
+                  <% if (rfq.status === 'ACTIVE') { %>
+                    <form action="/rfqs/<%= rfq.id %>/close" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to close this RFQ? This will prevent further quotation submissions and reject pending ones.');">
+                      <button type="submit" class="btn btn-danger btn-sm">
+                        <i data-lucide="lock"></i>
+                        <span>Close RFQ</span>
+                      </button>
+                    </form>
+                  <% } %>
+
+                  <% if (rfq.quoteCount > 0) { %>
+                    <a href="/quotes/compare?rfqId=<%= rfq.id %>" class="btn btn-success btn-sm">
+                      <i data-lucide="split"></i>
+                      <span>Compare Quotes (<%= rfq.quoteCount %>)</span>
+                    </a>
+                  <% } else { %>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); padding: 0.5rem;"><i data-lucide="inbox" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 0.25rem;"></i>No Quotes</span>
+                  <% } %>
+                <% } else { %>
+                  <!-- Approver / Manager role views -->
+                  <% if (rfq.quoteCount > 0) { %>
+                    <a href="/quotes/compare?rfqId=<%= rfq.id %>" class="btn btn-secondary btn-sm">
+                      <i data-lucide="eye"></i>
+                      <span>View Comparisons (<%= rfq.quoteCount %>)</span>
+                    </a>
+                  <% } %>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Description & Deadline -->
+            <div style="display: grid; grid-template-columns: 3fr 1.25fr; gap: 2rem; margin: 1rem 0;">
+              <div>
+                <p style="font-size: 0.95rem; color: var(--text-main); line-height: 1.6;"><%= rfq.description %></p>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; flex-direction: column; justify-content: center; gap: 0.25rem;">
+                <span style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.05em;">Submission Deadline</span>
+                <span style="font-weight: 700; font-size: 0.95rem; color: var(--color-danger); font-family: 'Outfit';">
+                  <%= new Date(rfq.deadline).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) %>
+                </span>
+              </div>
+            </div>
+
+            <!-- Collapsible Items Section -->
+            <div style="border-top: 1px solid var(--border-light); padding-top: 1rem; margin-top: 1rem;">
+              <button onclick="toggleItems('<%= rfq.id %>')" class="btn btn-secondary btn-sm" style="border: none; background: none; padding: 0; display: inline-flex; align-items: center; gap: 0.35rem; color: var(--color-primary); cursor: pointer;">
+                <i data-lucide="chevron-down" id="arrow-<%= rfq.id %>" style="width: 16px; height: 16px; transition: var(--transition-smooth);"></i>
+                <span id="label-<%= rfq.id %>">Show Requested Items (<%= rfq.items.length %>)</span>
+              </button>
+
+              <div id="items-<%= rfq.id %>" style="display: none; margin-top: 1rem; transition: var(--transition-smooth);">
+                <div class="table-responsive" style="border: 1px solid var(--border-light); border-radius: var(--radius-md); background: rgba(0,0,0,0.1);">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Item Description</th>
+                        <th>Required Qty</th>
+                        <th>Unit</th>
+                        <th>Technical Specifications</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% rfq.items.forEach(item => { %>
+                        <tr>
+                          <td><strong><%= item.name %></strong></td>
+                          <td><%= item.quantity %></td>
+                          <td><span style="background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem;"><%= item.unit %></span></td>
+                          <td style="color: var(--text-muted);"><%= item.description || 'N/A' %></td>
+                        </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </main>
+</div>
+
+<script>
+  function toggleItems(rfqId) {
+    const section = document.getElementById('items-' + rfqId);
+    const arrow = document.getElementById('arrow-' + rfqId);
+    const label = document.getElementById('label-' + rfqId);
+    const qty = section.querySelectorAll('tbody tr').length;
+
+    if (section.style.display === 'none') {
+      section.style.display = 'block';
+      arrow.style.transform = 'rotate(180deg)';
+      label.innerText = 'Hide Requested Items (' + qty + ')';
+    } else {
+      section.style.display = 'none';
+      arrow.style.transform = 'rotate(0deg)';
+      label.innerText = 'Show Requested Items (' + qty + ')';
+    }
+  }
+</script>
+
+<%- include('partials/footer') %>
