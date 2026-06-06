@@ -1345,7 +1345,8 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,        // <-- Ise add karein
+  getRedirectResult,         // <-- Ise add karein
   GoogleAuthProvider,
   sendPasswordResetEmail,
   signOut,
@@ -1516,10 +1517,22 @@ window.doRegister = async () => {
   }
 };
 
+// Google se aane ke baad result handle karne ke liye
+getRedirectResult(auth).then((result) => {
+    if (result) {
+        // Login successful ho gaya, onAuthStateChanged automatically baaki handle kar lega
+        hideLoading();
+    }
+}).catch((error) => {
+    hideLoading();
+    toast(firebaseErrMsg(error), 'error');
+});
+
 window.doGoogleLogin = async () => {
   showLoading();
   try {
-    await signInWithPopup(auth, googleProvider);
+    // Popup ki jagah redirect use kar rahe hain
+    await signInWithRedirect(auth, googleProvider);
   } catch(e) {
     hideLoading();
     toast(firebaseErrMsg(e),'error');
