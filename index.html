@@ -1345,8 +1345,7 @@ import {
   getAuth,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithRedirect,        // <-- Ise add karein
-  getRedirectResult,         // <-- Ise add karein
+  signInWithPopup,
   GoogleAuthProvider,
   sendPasswordResetEmail,
   signOut,
@@ -1358,6 +1357,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
+  enableNetwork,
   collection,
   doc,
   addDoc,
@@ -1394,6 +1394,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
+
+// Force Firestore online (fixes "client is offline" error)
+enableNetwork(db).catch(()=>{});
 
 // ──────────────────────────────────────────────
 //  GLOBAL STATE
@@ -1517,22 +1522,11 @@ window.doRegister = async () => {
   }
 };
 
-// Google se aane ke baad result handle karne ke liye
-getRedirectResult(auth).then((result) => {
-    if (result) {
-        // Login successful ho gaya, onAuthStateChanged automatically baaki handle kar lega
-        hideLoading();
-    }
-}).catch((error) => {
-    hideLoading();
-    toast(firebaseErrMsg(error), 'error');
-});
-
 window.doGoogleLogin = async () => {
   showLoading();
   try {
-    // Popup ki jagah redirect use kar rahe hain
-    await signInWithRedirect(auth, googleProvider);
+    await signInWithPopup(auth, googleProvider);
+    // onAuthStateChanged automatically handles the rest
   } catch(e) {
     hideLoading();
     toast(firebaseErrMsg(e),'error');
